@@ -19,6 +19,7 @@ void print_arr(char **arr, int n){
 
 int main(int agc, char *argV[]){
 	int i;
+
 	// INSTALL FILE //
 	FILE *f1, *f2;	
 	f1 = stdin;
@@ -31,6 +32,7 @@ int main(int agc, char *argV[]){
 		printf("Cannot open file.\n");
 		return 0;
 	}	
+	
 	// General part //
 	#define prt 10
 	int c, len, n = 0;
