@@ -2,9 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-int c_in_arr(char c, char arr[]){
-    int n;
-    for(n = sizeof(arr) - 1; n > 0; n--, arr++){
+int c_in_arr(char c, char arr[], int n){
+    for(n--; n > 0; n--, arr++){
         if((char)c == *arr) return 1;
     }
     return 0;
@@ -21,7 +20,7 @@ char **PrStr(char *str, int *count){
 		for(; *str == ' '; str++);
 		len = 0;
 		word = malloc(prt * sizeof(char));
-		while( (c = *str) && (c != ' ') && !c_in_arr(c, spec) ){
+		while( (c = *str) && (c != ' ') && !c_in_arr(c, spec, sizeof(spec)) ){
 			if(c != '"'){
 				if(! ((len + 1) % prt) ) word = realloc(word, (len + 1 + prt) * sizeof(char));
 				word[len] = c;
@@ -33,7 +32,17 @@ char **PrStr(char *str, int *count){
 					word[len] = c;
 					len += 1;
 				}
-				if(!c) break;
+				if(!c){
+					fprintf(stderr, "error: only one \"  \n");
+					free(word);
+					int i;
+					for(i = 0; i < n; i++){
+						free(arr_word[i]);
+					}
+					free(arr_word);
+					*count = 0;
+					return NULL;
+				}
 			}
 			
 			str++;
@@ -46,7 +55,7 @@ char **PrStr(char *str, int *count){
             arr_word[n - 1] = word; 
 		}
         else free(word);
-		if(c_in_arr(c, spec)){
+		if(c_in_arr(c, spec, sizeof(spec))){
     	    word = malloc(2 * sizeof(char));
             word[0] = c;
 			word[1] = 0;
