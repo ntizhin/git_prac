@@ -5,6 +5,22 @@
 #include "mod1.h"
 #include <sys/wait.h>
 
+void process(char **arr){
+	int pid;
+	int status;
+	if((pid = fork()) == 0){   // child
+		execvp(arr[0], arr);
+		fprintf(stderr,"error: exec did't work\n");
+		exit(1);
+	}
+	// parrent 
+	if(pid == -1) fprintf(stderr, "error: process did't start\n");   
+	else{	
+		wait(&status);
+		if(status) fprintf(stderr, "error: process did't end, status = %x\n", status); 
+	}
+}
+
 void cd(char **arr, int arg){
     if(arg > 2) fprintf(stderr, "too many arguments");
     else if(arg == 1) chdir(getenv("HOME"));
@@ -30,26 +46,13 @@ int main(int agc, char *argV[]){
 	// General part //
 	char *str;
 	char **arr_word;
-	int n, pid;
+	int n;
 	while(!feof(f1)){
 		str = EntrStr(f1);
 		arr_word = PrStr(str, &n);
 		if(n > 0){
 			if(!strcmp(arr_word[0], "cd")) cd(arr_word, n);
-			else{
-				if((pid = fork()) == 0){   // child
-					execvp(arr_word[0], arr_word);
-					fprintf(stderr,"error: exec did't work\n");
-					exit(1);
-				}
-				// parrent 
-				if(pid == -1) fprintf(stderr, "error: process did't start\n");   
-				else{
-					int status;
-					wait(&status);
-					if(status) fprintf(stderr, "error: process did't end, status = %x\n", status); 
-				}
-			}
+			else process(arr_word);
 		}
         free(str);
 		for(i = 0; i < n; i++) free(arr_word[i]);
