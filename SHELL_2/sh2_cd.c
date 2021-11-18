@@ -48,6 +48,7 @@ int main(int agc, char *argV[]){
 	char **arr_word;
 	int n;
 	while(!feof(f1)){
+		printf(">");
 		str = EntrStr(f1);
 		arr_word = PrStr(str, &n);
 		if(n > 0){
