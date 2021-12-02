@@ -6,3 +6,13 @@ prog.c
 sh2
 sh2.c
 sh2.o
+bgrd_file.txt
+forever
+forever.c
+mod1.o
+mod2.o
+mod3.o
+sh
+sh.o
+test
+.vscode
