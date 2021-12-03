@@ -9,6 +9,30 @@
 #include <sys/types.h>
 #include <fcntl.h>
 
+void add_pid_arr(pid_t pid, pid_t **pid_array, int n){
+    *pid_array = realloc(*pid_array, (n + 1) * sizeof(pid_t*));
+    (*pid_array)[n] = pid;
+}
+
+pid_t *check_bgrd(pid_t *pid_array, int *n){
+    int i, size = *n, status;
+	pid_t *new_arr = malloc(0); 
+	int j = 0;
+    for(i = 0; i < size; i++){
+        if(waitpid(pid_array[i], &status, WNOHANG) > 0){
+            printf("[%d] Done; status = %d\n", pid_array[i], status);
+        } 
+		else{
+			j += 1;
+			new_arr = realloc(new_arr, j * sizeof(pid_t));
+			new_arr[j - 1] = pid_array[i];
+		}
+	}
+	free(pid_array);
+	*n = j;
+	return new_arr;
+}
+
 int comand(char **arr, int n){
 	int pid;
 	int status;
@@ -45,7 +69,7 @@ int comand(char **arr, int n){
 	close(fd[1]);
 	if(pid == -1) fprintf(stderr, "error: process did't start\n");   
 	else{
-		wait(&status);
+		waitpid(pid, &status, 0);
 		if(status) fprintf(stderr, "error: process did't end, status = %x\n", status); 
 	}
 	return status;
@@ -72,53 +96,36 @@ void comand_if(char **arr){
         }
 }
 
-void bgrd_process(char **arr){
-	int f, status;
+void bgrd_process(char **arr, pid_t **pid_bgrd_array, int *c_bgrd){
+	int f;
 	int pid = fork();
 	switch (pid)
 	{
 	case -1:
-		perror("Error: fork didn't work\n");
+		perror("Error: fork() from bgrd didn't work\n");
 		break;
 	case 0:
-		if((f = open("./bgrd_file.txt", O_RDONLY | O_WRONLY | O_TRUNC | O_CREAT)) == -1){
+		if((f = open("/dev/null", O_RDONLY | O_WRONLY | O_TRUNC | O_CREAT)) == -1){
 			perror("Can't open file for bgrd_process\n");
 			exit(1);
 		}
-		else{
-			int pid_bgrd = fork();
-			switch (pid_bgrd)
-			{
-			case -1:
-				perror("Error: fork didn't work\n");
-				exit(1);
-				break;
-			case 0:
-				dup2(f, 0);
-				dup2(f, 1);
-				close(f);
-				setpgrp();
-				comand_if(arr);
-				exit(0);
-				break;
-			default:
-				close(f);
-				printf("pid_background_process = %d\n", pid_bgrd);
-				exit(0);
-				break;
-			}
-		}
+		dup2(f, 0);
+		dup2(f, 1);
+		close(f);
+		setpgrp();
+		printf("getppid = %d group = %d\n", getpid(), getpgrp());
+		comand_if(arr);
+		exit(0);
 	default:
-		wait(&status);
-		if(status){
-			perror("error: child from bgrd_process\n");
-			printf("status = %x\n", status);
-		}
+		add_pid_arr(pid, pid_bgrd_array, *c_bgrd);
+		*c_bgrd += 1;
+	//	printf("n = %d\n", *c_bgrd);
+		printf("[%d] %d\n", *c_bgrd, pid);
 		break;
 	}
 }
 
-void comand_shell(char **arr){
+void comand_shell(char **arr, pid_t **pid_bgrd_array, int *c_bgrd){
 	char **cmd;
     enum {bgrd, sml, end} reason;
     while(*arr){
@@ -132,7 +139,7 @@ void comand_shell(char **arr){
 				free(*arr);
 				*arr = NULL;
             	arr++;
-				bgrd_process(cmd);
+				bgrd_process(cmd, pid_bgrd_array, c_bgrd);
 				break;
 			case sml:
 				free(*arr);
