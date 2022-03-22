@@ -6,10 +6,8 @@ using namespace std;
 class Matrix{
     double **M;
     int m, n;
-
     public:
-
-        Matrix(int _m, int _n){
+        Matrix(int _m = 1, int _n = 1){
             if(! (_n && _m)) _m = _n = 1;
             m = _m; n = _n;
             M = new double * [m];
@@ -32,7 +30,7 @@ class Matrix{
 
         double Det() const;
         double Norm() const;
-        void Tr();
+        Matrix & Tr();
 
         friend Matrix inverse_matrix(const Matrix & A);
         friend Matrix operator*(const Matrix & A, const Matrix & B);
@@ -129,7 +127,7 @@ double Matrix::Norm() const{
     return sqrt(_norm);
 };
 
-void Matrix::Tr(){
+Matrix & Matrix::Tr(){
     double ** T;
     T = new double * [n];
         for(int i = 0; i < m; i++)
@@ -142,6 +140,7 @@ void Matrix::Tr(){
         delete [] M;
         M = T; 
         int t; t = n; n = m; m = t;
+    return *this;
 };
 
 bool operator==(const Matrix & A, const Matrix & B){
@@ -170,7 +169,6 @@ Matrix inverse_matrix(const Matrix & A){
         cout << "The matrix doesn't fit" << endl;
     }
     else inversion(A_invrs.M, A.m);
-    A_invrs.print();
     return A_invrs;
 };
 
@@ -194,19 +192,108 @@ Matrix operator*(const Matrix & A, int q){
     return C;
 };
 
+Matrix Create_Matrix(){
+    int m, n;
+    cout << "m, n = ";
+    cin >> m >> n;
+    Matrix tmp(m, n);
+    tmp.fill();
+    return tmp;
+};
+
 int main()
-{     
-    Matrix b(3, 2);
-    Matrix c(2, 1);
-    b.fill();
-    c.fill();
-    b.print();
-    c.print();
-    Matrix g = b * c;
-    Matrix f = g * 2;
-    g.print();
-    f.print();
-    cout << b.low_trian() << endl;
-    cout << c.up_trian() << endl;
+{    
+    bool marker = 1; 
+    for(;marker;){
+        cout << "1. Determinant" << endl;
+        cout << "2. Norm" << endl;
+        cout << "3. Transposition" << endl;
+        cout << "4. Inverse" << endl;
+        cout << "5. +=" << endl;
+        cout << "6. -=" << endl;
+        cout << "7. *" << endl;
+        cout << "8. ==" << endl;
+        cout << "9. low_trian" << endl;
+        cout << "10. up_trian" << endl;
+        cout << "11. exit" << endl;
+        int t;
+        cin >> t;
+        Matrix A;
+        switch (t)
+        {
+            case 1:
+                {
+                Matrix A = Create_Matrix();
+                cout << A.Det() << endl;
+                };
+                break;
+            case 2:
+                {
+                Matrix A = Create_Matrix();
+                cout << A.Norm() << endl;
+                };
+                break;
+            case 3:
+                {
+                Matrix A = Create_Matrix();
+                A.Tr().print();
+                };
+                break;
+            case 4:
+                {   
+                Matrix A = Create_Matrix();
+                inverse_matrix(A).print();
+                };       
+                break;
+            case 5:
+                {
+                Matrix A = Create_Matrix();
+                Matrix B = Create_Matrix();
+                A += B;
+                A.print();
+                };
+                break;
+            case 6:
+                {
+                Matrix A = Create_Matrix();
+                Matrix B = Create_Matrix();
+                A -= B;
+                A.print();
+                };
+                break;
+            case 7:
+                {
+                Matrix A = Create_Matrix();
+                Matrix B = Create_Matrix();
+                (A * B).print();
+                };
+                break;
+            case 8:
+                {
+                Matrix A = Create_Matrix();
+                Matrix B = Create_Matrix();
+                cout << (A == B) << endl;;
+                };
+                break;
+            case 9:
+                {
+                Matrix A = Create_Matrix();
+                cout << A.low_trian() << endl;
+                };
+                break;
+            case 10:
+                {
+                Matrix A = Create_Matrix();
+                cout << A.up_trian() << endl;
+                };
+                break;            
+            default:
+                marker = 0;
+                break;
+        };
+
+    };
+    //cout << h.low_trian() << endl;
+    //cout << m.up_trian() << endl;
     return 0;
-}
+};
