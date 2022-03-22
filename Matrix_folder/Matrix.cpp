@@ -293,7 +293,5 @@ int main()
         };
 
     };
-    //cout << h.low_trian() << endl;
-    //cout << m.up_trian() << endl;
     return 0;
 };
