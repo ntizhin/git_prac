@@ -1,3 +1,5 @@
 Matrix.exe
 Matrix.o
 mod_Matrix.o
+test.cpp
+test.exe
