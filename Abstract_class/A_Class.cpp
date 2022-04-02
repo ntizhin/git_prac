@@ -94,6 +94,7 @@ class microwave_oven : protected technique{
             cout << "volume_camera: " << get_volume_camera() << endl;
             cout << "status: " << (get_status() ? "on" : "off") << endl;
             if(status) cout << "current heating_level " <<  heating_level << endl; 
+            cout << endl;
         };
         virtual ~microwave_oven(){};
 };
@@ -116,7 +117,83 @@ microwave_oven microwave_oven::include_microwave_oven(){
     return A;
 }; 
 
+class washing_machine : protected technique{
+    private:
+        int volume_camera;
+        int c_mode;
+        bool * mode;
+        washing_machine(string _name, int _V, int _P, int _D[3], int _col, int _vc, int _cm, bool * _m)
+            : technique(_name, _V, _P, _D,_col), volume_camera(_vc), c_mode(_cm), mode(_m)
+            {};
+    public:
+        static washing_machine include_washing_machine();
+        washing_machine(const washing_machine & M) : technique(M),
+            volume_camera(M.volume_camera), c_mode(M.c_mode){
+                mode = new bool[c_mode];
+                for(int i = 0; i < c_mode; i++) mode[i] = M.mode[i];
+            };
+        virtual void connect(){
+            count_connect_device++;
+            power_consumption_in_system += power_consumption;
+            status = 1;
+            //... depend with device//
+        };
+        virtual void disconnect(){
+            count_connect_device--;
+            power_consumption_in_system -= power_consumption;
+            status = 0;
+            //... depend with device//
+
+        };
+        int get_volume_camera() const { return volume_camera; };
+        void change_mode(int j){
+            if(j > c_mode) cout << "incorrect value" << endl;
+            else if(status != 0) mode[j - 1] = !mode[j - 1];
+            else cout << "error, status: on" << endl;
+        };
+        virtual void print_device(){
+             cout << "washing_machine" << endl;
+            cout << "name_device: " << get_name_device() << endl;
+            cout << "voltage: " << get_voltage() << endl;
+            cout << "power_consumption: " << get_power_consumption() << endl;
+            cout << "color: " << get_color() << endl;
+
+            cout << "demisions: " << get_dimensions()[0];
+            cout << " * "  << get_dimensions()[1];
+            cout << " * " << get_dimensions()[2] << endl;
+            
+            cout << "volume_camera: " << get_volume_camera() << endl;
+            cout << "status: " << (get_status() ? "on" : "off") << endl;
+            if(status){
+                cout << "current mode: "; 
+                for(int i = 0; i < c_mode; i++) cout << mode[i]; 
+                cout << endl;
+            };
+            cout << endl;
+        };
+        virtual ~washing_machine(){ delete [] mode; };
+};
+
+washing_machine washing_machine::include_washing_machine(){
+    string name;
+    int V, P, D[3], col, vc, cm;
+    bool * m;
+    cout << "name_device: "; cin >> name;
+    cout << "voltage: "; cin >> V;
+    cout << "power_consumption: "; cin >> P;
+    cout << "color: "; cin >> col;
+    cout << "demisions: "; cin >> D[0] >> D[1] >> D[2];    
+    cout << "volume_camera: "; cin >> vc;
+    cout << "c_mode: "; cin >> cm;
+    m = new bool[cm];
+    cout << "mode: "; 
+    for(int i = 0; i < cm; i++) cin >> m[i]; 
+    washing_machine A(name, V, P, D, col, vc, cm, m);
+    return A;
+}; 
+
 int main(){
+
     microwave_oven A = microwave_oven::include_microwave_oven();
     cout << "\nDevice:" << endl;
     A.connect();
@@ -124,5 +201,17 @@ int main(){
     cout << "\nDevice:" << endl;
     A.disconnect();
     A.print_device();
+
+    washing_machine B = washing_machine::include_washing_machine();
+    cout << "\nDevice:" << endl;
+    B.connect();
+    B.change_mode(2);
+    B.print_device();
+    B.disconnect();
+    cout << "\nchange:" << endl;
+    B.change_mode(2);
+    cout << "\nDevice:" << endl;
+    B.print_device();
+
     return 0;
 }; 
