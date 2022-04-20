@@ -16,6 +16,8 @@ program
  write (c);
  x = x + "step";
  }
+ 
  write (x);
  boolean k = false;
-}@
+
+}

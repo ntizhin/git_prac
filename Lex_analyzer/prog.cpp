@@ -32,7 +32,7 @@ const char * TW[] = {
     NULL };
 
 const char * TD[] = { 
-    "@", ";", ",", ":", "(", ")", 
+    "", ";", ",", ":", "(", ")", 
     "=", "<", ">", "+", "-", "*", 
     "/","<=", "!=", ">=", "==",  
     "%","*/", "/*", "{", "}",
@@ -147,7 +147,7 @@ Lex Scanner::get_lex(){
                     buf.push_back(c);
                     CS  = SLASH; 
                 }
-                else if (c == '@')
+                else if (c == EOF)
                     return Lex(LEX_FIN);
                 else if(c == '"'){
                     CS = QUOTE;
@@ -197,12 +197,15 @@ Lex Scanner::get_lex(){
                     j = look(buf, TD);
                     return Lex((type_of_lex)(j + (int)LEX_FIN), j);
                 }
-                else CS = COM;
+                else{
+                    CS = COM;
+                    buf.pop_back();
+                }
                 break;
             case COM:
                 if(c == '*'){
                     gc();
-                    if(c == '/') CS = H;
+                    if(c == '/'){  CS = H; }
                     else ungetc(c, fp); 
                 }
                 break;
@@ -224,9 +227,6 @@ Lex Scanner::get_lex(){
   } while (true);
 }
 
-
-
-
 int main(){
     try{
         Lex L;
@@ -236,7 +236,7 @@ int main(){
         vector<Ident>::const_iterator i;
         for(i = TID.begin(); i != TID.end(); i++) cout << (*i).get_name() << endl;
     }
-    catch(const char * str){
-        cout << "error: " << str << endl;
+    catch(char c){
+        cout << "error: " << c << endl;
     }
 };
