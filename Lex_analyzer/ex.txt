@@ -19,5 +19,5 @@ program
  
  write (x);
  boolean k = false;
-
+/*it's comment 123*/
 }

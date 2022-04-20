@@ -53,7 +53,7 @@ public:
 };
 
 ostream & operator<<(ostream & os, Lex L){
-    cout << L.t_lex << " " << L.v_lex << " " << L.l_str;
+    cout << "(" << L.t_lex << "," << L.v_lex << "," << L.l_str << ")" << endl;
     return os;
 };
 
@@ -227,16 +227,19 @@ Lex Scanner::get_lex(){
   } while (true);
 }
 
-int main(){
-    try{
-        Lex L;
-        Scanner F("ex.txt");
-        while( (L = F.get_lex()).get_type() != LEX_FIN) cout << L << endl;
-        cout << "TID:" << endl;
-        vector<Ident>::const_iterator i;
-        for(i = TID.begin(); i != TID.end(); i++) cout << (*i).get_name() << endl;
-    }
-    catch(char c){
-        cout << "error: " << c << endl;
+int main(int argc, char *argv[]){
+    if(argc < 2) cout << "FILE?" << endl;
+    else{
+        try{
+            Lex L;
+            Scanner F(argv[1]);
+            while( (L = F.get_lex()).get_type() != LEX_FIN) cout << L;
+            cout << "TID:" << endl;
+            vector<Ident>::const_iterator i;
+            for(i = TID.begin(); i != TID.end(); i++) cout << (*i).get_name() << endl;
+        }
+        catch(char c){
+            cout << "error: " << c << endl;
+        }
     }
 };
