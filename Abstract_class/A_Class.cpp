@@ -60,13 +60,13 @@ class microwave_oven : public technique{
             count_connect_device++;
             power_consumption_in_system += power_consumption;
             status = 1;
-            //... depend with device//
+            cout << "connect microwave_oven" << endl;
         };
         virtual void disconnect(){
             count_connect_device--;
             power_consumption_in_system -= power_consumption;
             status = 0;
-            //... depend with device//
+            cout << "disconnect microwave_oven" << endl;
 
         };
         int turn_up_heating_level(int n = 1){
@@ -154,13 +154,13 @@ class washing_machine : public technique{
             count_connect_device++;
             power_consumption_in_system += power_consumption;
             status = 1;
-            //... depend with device//
+            cout << "connect washing_machine" << endl;
         };
         virtual void disconnect(){
             count_connect_device--;
             power_consumption_in_system -= power_consumption;
             status = 0;
-            //... depend with device//
+            cout << "disconnect washing_machine" << endl;
 
         };
         int get_volume_camera() const { return volume_camera; };
@@ -241,8 +241,8 @@ int main(){
     cout << A;
 
     washing_machine B = washing_machine::include_washing_machine();
-    cout << "\nDevice:" << endl;
     B.connect();
+    cout << "\nDevice:" << endl;
     B.change_mode(2);
     cout << B;
     B.disconnect();
