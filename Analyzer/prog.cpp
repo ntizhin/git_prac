@@ -9,7 +9,7 @@ enum type_of_lex {
     LEX_NULL,                                                                                   /* 0*/
     LEX_PROGRAM, LEX_STRING, LEX_INT, LEX_WHILE, LEX_READ, LEX_WRITE, LEX_GOTO, 
     LEX_IF, LEX_ELSE, LEX_BOOLEAN, LEX_TRUE, LEX_FALSE,         
-    LEX_AND, LEX_NOT, LEX_OR,                                                                   /*15*/
+    LEX_AND, LEX_NOT, LEX_OR,  LEX_CONTINU,                                                               /*15*/
     LEX_FIN,                                                                                    /*16*/
     LEX_SEMICOLON, LEX_COMMA, LEX_COLON, LEX_LPAREN, LEX_RPAREN, LEX_EQ, LEX_LSS,               
     LEX_GTR, LEX_PLUS, LEX_MINUS, LEX_TIMES, LEX_SLASH, LEX_LEQ, LEX_NEQ, LEX_GEQ,              
@@ -28,7 +28,7 @@ const char * TW[] = {
     "while", "read", "write",
     "goto", "if", "else", 
     "boolean", "true", "false", 
-    "and", "not", "or", 
+    "and", "not", "or", "continue", 
     NULL };
 
 const char * TD[] = { 
