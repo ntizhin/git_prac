@@ -16,6 +16,7 @@ program
 Kip:while (c > 100) 
     {
         c = c - 5; 
+        a + 6;
         write (false);
         x = x + "step";
     }

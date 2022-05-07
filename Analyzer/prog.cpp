@@ -244,7 +244,12 @@ class Parser{
     bool flag, flagLbl;
     stack<type_of_lex> st_lex;
     vector<int> Lbl_vector;
-    vector<int> goto_vector;
+    struct s_gt{
+        int index;
+        int ps;
+    } _gt;
+    vector<s_gt> goto_vector;
+    int _lbl[2];
     void Program();
     void Descriptions();
     void Description();
@@ -282,10 +287,9 @@ class Parser{
         c_type = curr_lex.get_type ();
         c_val = curr_lex.get_value_int();
         c_str = curr_lex.get_value_string();
-        //cout << curr_lex;
     }
 public:
-//  vector<Lex> poliz;
+    vector<Lex> poliz;
     Parser(const char * program) : scan(program){};
     void analyze();
 };
@@ -296,6 +300,8 @@ void Parser::analyze(){
     if(c_type != LEX_FIN) 
         throw curr_lex;
     check_Lbl();
+    for(Lex l : poliz) 
+        cout << l;
     cout << endl << "Yes!!!" << endl;
 }
 
@@ -384,32 +390,48 @@ void Parser::Operators(){
 
 void Parser::Operator(){
     flag = true;
+    int pl0, pl1, pl2, pl3;
     if(c_type == LEX_IF){
         gl();
         if(c_type == LEX_LPAREN) gl();
         else throw curr_lex;
         Expression();
         eq_boolean();
+        pl0 = poliz.size();
+        poliz.push_back(Lex());
+        poliz.push_back(Lex(POLIZ_FGO));
         st_lex.pop();
         if(c_type == LEX_RPAREN) gl();
         else throw curr_lex;
         Operator();
         if(c_type == LEX_ELSE){
+            pl1 = poliz.size();
+            poliz.push_back(Lex());
+            poliz.push_back(Lex(POLIZ_GO));
+            poliz[pl0] = Lex(POLIZ_LABEL, poliz.size());
             gl();
             Operator();
+            poliz[pl1] = Lex(POLIZ_LABEL, poliz.size());
         }
+        else poliz[pl0] = Lex(POLIZ_LABEL, poliz.size());
     }
     else if(c_type == LEX_WHILE){
-        cout << "NICE" << endl;
         gl();
         if(c_type == LEX_LPAREN) gl();
         else throw curr_lex;
+        pl3 = poliz.size();
         Expression();
         eq_boolean();
         st_lex.pop();
+        pl2 = poliz.size();
+        poliz.push_back(Lex());
+        poliz.push_back(Lex(POLIZ_FGO));
         if(c_type == LEX_RPAREN) gl();
         else throw curr_lex;
         Operator();
+        poliz.push_back(Lex(POLIZ_LABEL, pl3));
+        poliz.push_back(Lex(POLIZ_GO));
+        poliz[pl2] = Lex(POLIZ_LABEL, poliz.size());
     }
     else if(c_type == LEX_READ){
         gl();
@@ -417,11 +439,13 @@ void Parser::Operator(){
         else throw curr_lex;
         if(c_type == LEX_ID){
             check_id_in_read();
+            poliz.push_back(Lex(POLIZ_ADDRESS, c_val));
             gl();
         }
         else throw curr_lex;
         if(c_type == LEX_RPAREN) gl();
         else throw curr_lex;
+        poliz.push_back(Lex(LEX_READ));
         if(c_type == LEX_SEMICOLON) gl();
         else throw curr_lex;
     }
@@ -430,9 +454,11 @@ void Parser::Operator(){
         if(c_type == LEX_LPAREN) gl();
         else throw curr_lex;
         Expression();
+        poliz.push_back(Lex(LEX_WRITE));
         while(c_type == LEX_COMMA){
             gl();
             Expression();
+            poliz.push_back(Lex(LEX_WRITE));
         };
         if(c_type == LEX_RPAREN) gl();
         else throw curr_lex;
@@ -443,7 +469,11 @@ void Parser::Operator(){
     else if(c_type == LEX_GOTO){
         gl();
         if(c_type == LEX_ID){
-            goto_vector.push_back(c_val);
+            _gt.index = c_val;
+            _gt.ps = poliz.size();
+            goto_vector.push_back(_gt);
+            poliz.push_back(Lex());
+            poliz.push_back(POLIZ_GO);
             gl();
         }
         else throw curr_lex;
@@ -475,18 +505,36 @@ void Parser::ExpressionOp(){
 }
 
 void Parser::LabelOp(){
-    if(c_type == LEX_COLON) gl();
+    if(c_type == LEX_COLON){
+        gl();
+        if(TID[_lbl[0]].get_declare())
+            throw "twice";
+        else{
+            TID[_lbl[0]].put_declare();
+            TID[_lbl[0]].put_value_int(_lbl[1]);
+            Lbl_vector.push_back(_lbl[0]);
+        }
+    }
     else throw curr_lex;
     Operator();
 }
 
 void Parser::Expression(){
+    int _id;
     E();
-    while(c_type == LEX_EQ){
+    if(c_type == LEX_EQ){
         st_lex.push(c_type);
+        if(poliz.back().get_type() == LEX_ID) {
+            _id = poliz.back().get_value_int();
+            poliz.pop_back();
+            poliz.push_back(Lex(POLIZ_ADDRESS, _id));
+        }
+        else 
+            throw "wrong types are in =";
         gl(); 
-        E(); 
+        Expression(); 
         eq_type();
+        poliz.push_back(Lex(LEX_EQ));
     }
 }
 
@@ -547,6 +595,7 @@ void Parser::F(){
         eq_boolean();
     }
     else if((c_type == LEX_PLUS) || (c_type == LEX_MINUS)){
+        poliz.push_back(Lex(c_type));
         gl();
         F();
         check_unary();
@@ -554,11 +603,12 @@ void Parser::F(){
     else if(c_type == LEX_ID){
         if(TID[c_val].get_declare()){
             st_lex.push(TID[c_val].get_type());
-            //poliz.push_back ( Lex ( LEX_ID, c_val ) );
+            poliz.push_back(curr_lex);
             gl();
         }
         else{
-            Lbl_vector.push_back(c_val);
+            _lbl[0] = c_val;
+            _lbl[1] = poliz.size();
             gl();
             if(!flag || c_type != LEX_COLON) throw "not declared";
             flagLbl = true;
@@ -566,22 +616,22 @@ void Parser::F(){
     }
     else if(c_type == LEX_NUM){
         st_lex.push(LEX_INT);
-        //poliz.push_back ( curr_lex );
+        poliz.push_back(curr_lex);
         gl ();
     }
     else if(c_type == LEX_STR){
         st_lex.push(LEX_STRING);
-        //poliz.push_back ( curr_lex );
+        poliz.push_back(curr_lex);
         gl ();
     }
     else if(c_type == LEX_TRUE){
         st_lex.push(LEX_BOOLEAN);
-        //poliz.push_back ( Lex (LEX_TRUE, 1) );
-        gl ();
+        poliz.push_back(curr_lex);
+        gl();
     }
     else if(c_type == LEX_FALSE){
         st_lex.push(LEX_BOOLEAN);
-        //poliz.push_back ( Lex (LEX_FALSE, 0) );
+        poliz.push_back(curr_lex);
         gl ();
     }
     else if(c_type == LEX_LPAREN){
@@ -625,22 +675,21 @@ void Parser::check_op(){
             r = LEX_BOOLEAN;
     }
     if(r == LEX_NULL) throw "wrong types are in operation";
-    cout << t1 << ' ' << t2 << ' ' << r << endl;
+    //cout << t1 << ' ' << t2 << ' ' << r << endl;
     st_lex.push(r);
-    //poliz.push_back (Lex (op) );
+    poliz.push_back(Lex(op));
 }
 
 void Parser::check_not(){
     if(st_lex.top() != LEX_BOOLEAN)
         throw "wrong type is in not";
-   /* else  
-        poliz.push_back ( Lex (LEX_NOT) );*/
+    else  
+        poliz.push_back(Lex(LEX_NOT));
 }
 
 void Parser::check_unary(){
     if(st_lex.top() != LEX_INT)
         throw "wrong type is in unary";
-    //plus or minus?  - пометка на будущее
 }
 
 void Parser::eq_type(){
@@ -664,20 +713,22 @@ void Parser::check_id_in_read(){
 }
 
 void Parser::check_Lbl(){
+    int lbl_ps;
+    cout << "LABEL:" << endl;
     for(int i : Lbl_vector){
-        cout << "LABEL:" << endl;
         cout << TID[i].get_name() << endl;
-        if(TID[i].get_declare())
-            throw "twice";
-        else TID[i].put_declare();
     };
     vector<int>::iterator it;
-    for(int j : goto_vector){
-        cout << "GOTO:" << endl;
-        cout << TID[j].get_name() << endl;
-        it = find(Lbl_vector.begin(), Lbl_vector.end(), j);
+    cout << "GOTO:" << endl;
+    for(s_gt j : goto_vector){
+        cout << TID[j.index].get_name() << endl;
+        it = find(Lbl_vector.begin(), Lbl_vector.end(), j.index);
         if(it == Lbl_vector.end())
             throw "not declared";
+        else{
+            lbl_ps = TID[j.index].get_value_int();
+            poliz[j.ps] = Lex(POLIZ_LABEL, lbl_ps);
+        }
     }
 }
 
@@ -686,12 +737,6 @@ int main(int argc, char *argv[]){
     if(argc < 2) cout << "FILE?" << endl;
     else{
         try{
-            /*Lex L;
-            Scanner F(argv[1]);
-            while( (L = F.get_lex()).get_type() != LEX_FIN) cout << L;
-            cout << "TID:" << endl;
-            vector<Ident>::const_iterator i;
-            for(i = TID.begin(); i != TID.end(); i++) cout << (*i).get_name() << endl;*/
             Parser P(argv[1]);
             P.analyze();
         }
