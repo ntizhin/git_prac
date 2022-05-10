@@ -1,27 +1,22 @@
-program 
+program
 {
  int a = 51, b = 6, c;
  string x = "abc", y, z = "abcd";
- boolean g;
- g = not false;
- c = (a + b) * 2; 
- if (c >= 100 or x == z)
+ c = (a + b) * 2; if (c >= 100 or x == z)
  {
-    goto Kip;
-    read (y);
-    write (y);
-    write (x + y + z, c);
- } 
+ read (y);
+ write (y);
+ write (x + y + z, c);
+ }
  else
-Kip:while (c > 100) 
-    {
-        c = c - 5; 
-        a + 6;
-        write (false);
-        x = x + "step";
-    }
-write (x);
-c = c = 3 + c - (c = b = a);
-/*it's comment 123*/
-}
-
+ c = a = 21;
+ Kip: if (c > 100)
+ {
+ c = c - 5;
+ write (c);
+ x = x + "step";
+ goto Kip;
+ }
+ write (x);
+ if(b == 6) write("nice");
+} 

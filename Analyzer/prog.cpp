@@ -22,7 +22,9 @@ enum type_of_lex {
     POLIZ_LABEL,                                                                                /*41*/
     POLIZ_ADDRESS,                                                                              /*42*/
     POLIZ_GO,                                                                                   /*43*/
-    POLIZ_FGO                                                                                   /*44*/
+    POLIZ_FGO,                                                                                  /*44*/    
+    LEX_UPLUS,                                                                                  /*45*/
+    LEX_UMINUS                                                                                  /*46*/
 };
 
 const char * TW[] = { 
@@ -51,7 +53,7 @@ public:
     Lex operator=(const Lex & L){ t_lex = L.t_lex; v_lex = L.v_lex; l_str = L.l_str; return *this; };
     type_of_lex get_type() const { return t_lex; };
     int get_value_int() const { return v_lex; };
-    int get_value_string() const { return v_lex; };
+    string get_value_string() const { return l_str; };
     friend ostream & operator<<(ostream & os, const Lex L);
 };
 
@@ -67,7 +69,6 @@ class Ident{
     bool assign;
     int value_int;
     string value_string;
-    bool value_boolean;
 public:
     Ident() { 
         declare = false; 
@@ -90,8 +91,6 @@ public:
     void put_value_int(int v){ value_int = v; };
     string get_value_string() const{ return value_string; };
     void put_value_string(string v){ value_string = v; };
-    bool get_value_boolean() const{ return value_boolean; };
-    void put_value_boolean(bool v){ value_boolean = v; };
 };
 
 vector<Ident> TID;
@@ -231,7 +230,8 @@ Lex Scanner::get_lex(){
 }
 // Parser //
 
-void from_st(stack<type_of_lex> & st, type_of_lex & i ) {
+template <class T, class T_EL>
+void from_st(stack<T> & st, T_EL & i ) {
     i = st.top(); st.pop();
 }
 
@@ -302,7 +302,7 @@ void Parser::analyze(){
     check_Lbl();
     for(Lex l : poliz) 
         cout << l;
-    cout << endl << "Yes!!!" << endl;
+    cout << endl << "Yes!!!" << endl; 
 }
 
 void Parser::Program(){
@@ -353,6 +353,7 @@ void Parser::Variable(type_of_lex t_lex){
     if(c_type == LEX_EQ){
         gl();
         Constant(t_lex);
+        TID[TID.size() - 1].put_assign();
     };
 }
 
@@ -364,23 +365,33 @@ void Parser::Constant(type_of_lex _t_lex){
 }
 
 void Parser::Integer(){
-    if((c_type == LEX_PLUS) || (c_type == LEX_MINUS)) Sign();
-    if(c_type == LEX_NUM) gl();
-    else throw curr_lex;
-}
-
-void Parser::Sign(){
-    if((c_type == LEX_PLUS) || (c_type == LEX_MINUS)) gl();
+    int sign = 1;
+    if(c_type == LEX_PLUS) gl(); 
+    else if(c_type == LEX_MINUS){ sign = -1; gl(); }
+    if(c_type == LEX_NUM){ 
+        TID[TID.size() - 1].put_value_int(c_val * sign);
+        gl();
+    }
     else throw curr_lex;
 }
 
 void Parser::StringConst(){
-    if(c_type == LEX_STR) gl();
+    if(c_type == LEX_STR){
+        TID[TID.size() - 1].put_value_string(c_str);
+        gl();
+    }
     else throw curr_lex;
 }
 
 void Parser::BoolConst(){
-    if((c_type == LEX_TRUE) || (c_type == LEX_FALSE)) gl();
+    if(c_type == LEX_TRUE){
+        TID[TID.size() - 1].put_value_int(1);
+        gl();
+    }
+    else if(c_type == LEX_FALSE){
+        TID[TID.size() - 1].put_value_int(0);
+        gl();
+    }
     else throw curr_lex;
 }
 
@@ -526,6 +537,7 @@ void Parser::Expression(){
         st_lex.push(c_type);
         if(poliz.back().get_type() == LEX_ID) {
             _id = poliz.back().get_value_int();
+            TID[_id].put_assign();
             poliz.pop_back();
             poliz.push_back(Lex(POLIZ_ADDRESS, _id));
         }
@@ -594,11 +606,16 @@ void Parser::F(){
         F();
         eq_boolean();
     }
-    else if((c_type == LEX_PLUS) || (c_type == LEX_MINUS)){
-        poliz.push_back(Lex(c_type));
+    else if(c_type == LEX_PLUS){
         gl();
         F();
         check_unary();
+    } 
+    else if(c_type == LEX_MINUS){
+        gl();
+        F();
+        check_unary();
+        poliz.push_back(Lex(LEX_UMINUS));
     } 
     else if(c_type == LEX_ID){
         if(TID[c_val].get_declare()){
@@ -626,12 +643,12 @@ void Parser::F(){
     }
     else if(c_type == LEX_TRUE){
         st_lex.push(LEX_BOOLEAN);
-        poliz.push_back(curr_lex);
+        poliz.push_back(Lex(LEX_TRUE, 1));
         gl();
     }
     else if(c_type == LEX_FALSE){
         st_lex.push(LEX_BOOLEAN);
-        poliz.push_back(curr_lex);
+        poliz.push_back(Lex(LEX_FALSE, 0));
         gl ();
     }
     else if(c_type == LEX_LPAREN){
@@ -675,7 +692,6 @@ void Parser::check_op(){
             r = LEX_BOOLEAN;
     }
     if(r == LEX_NULL) throw "wrong types are in operation";
-    //cout << t1 << ' ' << t2 << ' ' << r << endl;
     st_lex.push(r);
     poliz.push_back(Lex(op));
 }
@@ -695,7 +711,7 @@ void Parser::check_unary(){
 void Parser::eq_type(){
     type_of_lex t;
     from_st(st_lex, t);
-    st_lex.pop(); // del =
+    st_lex.pop(); 
     if(t != st_lex.top())
         throw "wrong types are in =";
 }
@@ -714,14 +730,14 @@ void Parser::check_id_in_read(){
 
 void Parser::check_Lbl(){
     int lbl_ps;
-    cout << "LABEL:" << endl;
+/*    cout << "LABEL:" << endl;
     for(int i : Lbl_vector){
         cout << TID[i].get_name() << endl;
-    };
+    }; */
     vector<int>::iterator it;
-    cout << "GOTO:" << endl;
+//    cout << "GOTO:" << endl;
     for(s_gt j : goto_vector){
-        cout << TID[j.index].get_name() << endl;
+//        cout << TID[j.index].get_name() << endl;
         it = find(Lbl_vector.begin(), Lbl_vector.end(), j.index);
         if(it == Lbl_vector.end())
             throw "not declared";
@@ -732,13 +748,283 @@ void Parser::check_Lbl(){
     }
 }
 
+/// Executer ///
+
+class Executer {
+public:
+    void execute ( vector<Lex> & poliz );
+};
+
+void Executer::execute(vector<Lex> & poliz){
+    Lex pc_el;
+    stack<int> args_int;
+    stack<string> args_str;
+    int lst_stack; // 0 - int, 1 - string
+    int i, j, index = 0, size = poliz.size();
+    string i_str, j_str;
+    while(index < size){
+        pc_el = poliz[index];
+        switch(pc_el.get_type()){
+            case LEX_TRUE: case LEX_FALSE: case LEX_NUM: 
+            case POLIZ_ADDRESS: case POLIZ_LABEL: 
+                args_int.push(pc_el.get_value_int());
+                lst_stack = 0;
+                break;
+
+            case LEX_STR:
+                args_str.push(pc_el.get_value_string());
+                lst_stack = 1;
+                break;
+
+            case LEX_ID:
+                i = pc_el.get_value_int();
+                if(TID[i].get_assign()){
+                    if(TID[i].get_type() == LEX_STRING){
+                        args_str.push(TID[i].get_value_string());
+                        lst_stack = 1;
+                    }
+                    else{
+                        args_int.push(TID[i].get_value_int());
+                        lst_stack = 0;
+                    }
+                }
+                else
+                  throw "POLIZ: indefinite identifier";
+                break;
+
+            case LEX_NOT:
+                from_st(args_int, i);
+                args_int.push(!i);
+                lst_stack = 0;
+                break;
+
+            case LEX_OR:
+                from_st(args_int, i); 
+                from_st(args_int, j);
+                args_int.push(j || i);
+                lst_stack = 0;
+                break;
+ 
+            case LEX_AND:
+                from_st(args_int, i);
+                from_st(args_int, j);
+                args_int.push(j && i);
+                lst_stack = 0;
+                break;
+ 
+            case POLIZ_GO:
+                from_st(args_int, i);
+                index = i - 1;
+                break;
+ 
+            case POLIZ_FGO:
+                from_st(args_int, i);
+                from_st(args_int, j);
+                if(!j) index = i - 1;
+                break;
+ 
+            case LEX_WRITE:
+                if(lst_stack){
+                    from_st(args_str, i_str);
+                    cout << i_str << endl;
+                }
+                else{
+                    from_st(args_int, i);
+                    cout << i << endl;
+                }
+                break;
+ 
+            case LEX_READ:
+                int k;
+                from_st(args_int, i);
+                if(TID[i].get_type () == LEX_INT){
+                    cout << "Input int value for" << TID[i].get_name () << endl;
+                    cin >> k;
+                    TID[i].put_value_int(k);
+                    TID[i].put_assign();
+                }
+                else if(TID[i].get_type() == LEX_BOOLEAN){
+                    string s;
+                    while (1) {
+                        cout << "Input boolean value (true or false) for" << TID[i].get_name() << endl;
+                        cin >> s;
+                        if ( s != "true" && s != "false" ) {
+                            cout << "Error in input:true/false" << endl;
+                            continue;
+                        }
+                        k = ( s == "true" ) ? 1 : 0;
+                        break;
+                        TID[i].put_value_int(k);
+                        TID[i].put_assign();
+                    }
+                }
+                else{
+                    string s;
+                    cout << "Input string value for" << TID[i].get_name() << endl;
+                    cin >> s;
+                    TID[i].put_value_string(s);
+                    TID[i].put_assign();
+                }
+                break;
+ 
+            case LEX_PLUS:
+                if(lst_stack){
+                    from_st(args_str, i_str);
+                    from_st(args_str, j_str);
+                    args_str.push(j_str + i_str);
+                }
+                else{
+                    from_st(args_int, i);
+                    from_st(args_int, j);
+                    args_int.push(i + j);
+                }
+                break;
+ 
+            case LEX_TIMES:
+                from_st(args_int, i);
+                from_st(args_int, j);
+                args_int.push(i * j);
+                lst_stack = 0;
+                break;
+ 
+            case LEX_MINUS:
+                from_st(args_int, i);
+                from_st(args_int, j);
+                args_int.push(j - i);
+                lst_stack = 0;
+                break;
+ 
+            case LEX_SLASH:
+                from_st(args_int, i);
+                from_st(args_int, j);
+                if(i){
+                    args_int.push(j / i);
+                    lst_stack = 0;
+                    break;
+                }
+                else
+                    throw "POLIZ:divide by zero";
+ 
+            case LEX_DEQ:
+                if(lst_stack){
+                    from_st(args_str, i_str);
+                    from_st(args_str, j_str);
+                    args_int.push(i_str == j_str);
+                    lst_stack = 0;
+                }
+                else{
+                    from_st(args_int, i);
+                    from_st(args_int, j);
+                    args_int.push(i == j);
+                }
+                break;
+ 
+            case LEX_LSS:
+                if(lst_stack){
+                    from_st(args_str, i_str);
+                    from_st(args_str, j_str);
+                    args_int.push(j_str < i_str);
+                    lst_stack = 0;
+                }
+                else{
+                    from_st(args_int, i);
+                    from_st(args_int, j);
+                    args_int.push(j < i);
+                }
+                break;
+ 
+            case LEX_GTR:
+                if(lst_stack){
+                    from_st(args_str, i_str);
+                    from_st(args_str, j_str);
+                    args_int.push(j_str > i_str);
+                    lst_stack = 0;
+                }
+                else{
+                    from_st(args_int, i);
+                    from_st(args_int, j);
+                    args_int.push(j > i);
+                }
+                break;
+ 
+            case LEX_LEQ:
+                from_st(args_int, i);
+                from_st(args_int, j);
+                args_int.push(j <= i);
+                lst_stack = 0;
+                break;
+ 
+            case LEX_GEQ:
+                from_st(args_int, i);
+                from_st(args_int, j);
+                args_int.push(j >= i);
+                lst_stack = 0;
+                break;
+ 
+            case LEX_NEQ:
+                if(lst_stack){
+                    from_st(args_str, i_str);
+                    from_st(args_str, j_str);
+                    args_int.push(j_str != i_str);
+                    lst_stack = 0;
+                }
+                else{
+                    from_st(args_int, i);
+                    from_st(args_int, j);
+                    args_int.push(j != i);
+                    lst_stack = 0;
+                }
+                break;
+
+            case LEX_UMINUS:
+                from_st(args_int, i);
+                args_int.push(-i);
+                lst_stack = 0;
+                break;
+
+            case LEX_EQ:
+                if(lst_stack){
+                    from_st(args_str, i_str);
+                    from_st(args_int, j);
+                    TID[j].put_value_string(i_str);
+                    TID[j].put_assign(); 
+                    args_str.push(i_str);
+                }
+                else{
+                    from_st(args_int, i);
+                    from_st(args_int, j);
+                    TID[j].put_value_int(i);
+                    TID[j].put_assign(); 
+                    args_int.push(i);
+                }
+                break;
+            default:
+                throw "POLIZ: unexpected elem";
+        }
+        ++index;
+    };
+    cout << "Finish of executing!!!" << endl;
+}
+
+class Interpretator{
+    Parser pars;
+    Executer E;
+public:
+    Interpretator(const char* program): pars(program){}
+    void interpretation();
+};
+ 
+void Interpretator::interpretation(){
+    pars.analyze();
+    E.execute(pars.poliz);
+}
 
 int main(int argc, char *argv[]){
     if(argc < 2) cout << "FILE?" << endl;
     else{
         try{
-            Parser P(argv[1]);
-            P.analyze();
+            Interpretator P(argv[1]);
+            P.interpretation();
         }
         catch(const Lex L){
             cout << "error: " << L;
